@@ -7,6 +7,8 @@ from docx import Document
 from gtts import gTTS
 import tempfile
 import speech_recognition as sr
+from pptx import Presentation/'//////////'
+import zipfile
 
 st.set_page_config(page_title="AI Chatbot", page_icon="🤖")
 
@@ -43,7 +45,7 @@ if selected_app == "ChatBot":
 
         uploaded_file = st.file_uploader(
             "Upload file (txt, pdf, image)",
-            type=["txt", "pdf", "png", "jpg", "jpeg", "docx"]
+            type=["txt", "pdf", "png", "jpg", "jpeg", "docx", "pptx", "zip"]
         )
 
         file_text = ""
@@ -66,10 +68,54 @@ if selected_app == "ChatBot":
                 for para in doc.paragraphs:
                     file_text += para.text + "\n"
 
+            elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+                prs = Presentation(uploaded_file)
+                for slide in prs.slides:
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text"):
+                            file_text += shape.text + "\n"
+
+           
+            elif uploaded_file.type == "application/zip":
+                import io
+
+                with zipfile.ZipFile(uploaded_file) as z:
+                    for file_name in z.namelist():
+                        try:
+                            with z.open(file_name) as f:
+
+                                if file_name.endswith(".txt"):
+                                    file_text += f.read().decode("utf-8") + "\n"
+
+                                elif file_name.endswith(".pdf"):
+                                    reader = PdfReader(io.BytesIO(f.read()))
+                                    for page in reader.pages:
+                                        text = page.extract_text()
+                                        if text:
+                                            file_text += text
+
+                                elif file_name.endswith(".docx"):
+                                    doc = Document(io.BytesIO(f.read()))
+                                    for para in doc.paragraphs:
+                                        file_text += para.text + "\n"
+
+                                elif file_name.endswith(".pptx"):
+                                    prs = Presentation(io.BytesIO(f.read()))
+                                    for slide in prs.slides:
+                                        for shape in slide.shapes:
+                                            if hasattr(shape, "text"):
+                                                file_text += shape.text + "\n"
+
+                        except:
+                            pass  
+
+           
             elif uploaded_file.type.startswith("image"):
                 image = Image.open(uploaded_file)
                 st.image(image)
+            
 
+              
 
         user_input = st.chat_input("Ask something...")
 
